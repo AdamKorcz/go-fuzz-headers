@@ -74,7 +74,7 @@ func (f *ConsumeFuzzer) Split(minCalls, maxCalls int) error {
 func (f *ConsumeFuzzer) GenerateStruct(targetStruct interface{}) error {
     //position := 0
     //fmt.Println("Byte position is ", *position)
-    if f.position>=len(data) {
+    if f.position>=len(f.data) {
         return errors.New("Not enough bytes to proceed")
     }
     e := reflect.ValueOf(targetStruct).Elem()
@@ -144,7 +144,7 @@ func (f *ConsumeFuzzer) GetBytes() ([]byte, error) {
     if f.position>=len(f.data) {
         return nil, errors.New("Not enough bytes to create byte array")
     }
-    length := int(data[f.position])
+    length := int(f.data[f.position])
     if f.position+length>=len(f.data) {
         return nil, errors.New("Not enough bytes to create byte array")
     }   
