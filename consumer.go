@@ -3,6 +3,7 @@ package gofuzzheaders
 import (
     "errors"
     "fmt"
+    "reflect"
 )
 
 type ConsumeFuzzer struct {
@@ -69,3 +70,96 @@ func (f *ConsumeFuzzer) Split(minCalls, maxCalls int) error {
     return nil
 }
 
+func GenerateStruct(targetStruct interface{}, data []byte) error {
+    position := 0
+    e := reflect.ValueOf(targetStruct).Elem()
+    for i := 0; i < e.NumField(); i++ {
+        fieldtype := e.Type().Field(i).Type.String()
+        switch ft := fieldtype; ft {
+        case "string":
+            stringChunk, err := GetString(data, &position)
+            if err != nil {
+                return err
+            }
+            chunk := stringChunk
+            e.Field(i).SetString(chunk)
+        case "bool":
+            newBool, err := GetBool(data, &position)
+            if err != nil {
+                return err
+            }
+            e.Field(i).SetBool(newBool)
+        case "int":
+            newInt, err := GetInt(data, &position)
+
+            if err != nil {
+                return err
+            }
+            e.Field(i).SetInt(int64(newInt))
+        case "[]string":
+            continue
+        case "[]byte":
+            fmt.Println("the type is []byte")
+            newBytes, err := GetBytes(data, &position)
+            if err != nil {
+                return err
+            }
+            e.Field(i).SetBytes(newBytes)
+        default:
+            continue
+        }
+
+    }
+    return nil
+}
+
+func GetInt(data []byte, position *int) (int, error) {
+    pos := *position
+    if pos>=len(data) {
+        return 0, errors.New("Not enough bytes to create int")
+    }
+    *position = pos+1
+    return int(data[pos]), nil
+}
+
+func GetBytes(data []byte, position *int) ([]byte, error) {
+    pos := *position
+    if pos>=len(data) {
+        return nil, errors.New("Not enough bytes to create byte array")
+    }
+    length := int(data[pos])
+    if pos+length>=len(data) {
+        return nil, errors.New("Not enough bytes to create byte array")
+    }   
+    b := data[pos:pos+length]
+    *position = pos + length
+    return b, nil
+}
+
+func GetString(data []byte, position *int) (string, error) {
+    pos := *position
+    if pos>=len(data) {
+        return "nil", errors.New("Not enough bytes to create string")
+    }
+    length := int(data[pos])
+    if pos+length>=len(data) {
+        return "nil", errors.New("Not enough bytes to create string")
+    }
+    str := string(data[pos:pos+length])
+    *position = pos + length
+    return str, nil
+}
+
+func GetBool(data []byte, position *int) (bool, error) {
+    pos := *position
+    if pos>=len(data) {
+        return false, errors.New("Not enough bytes to create bool")
+    }
+    if IsDivisibleBy(int(data[pos]), 2) {
+        *position = pos + 1
+        return true, nil
+    }else{
+        *position = pos + 1
+        return false, nil
+    }
+}
